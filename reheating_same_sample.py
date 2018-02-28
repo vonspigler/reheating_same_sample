@@ -245,7 +245,7 @@ def do_reheating_cycle(lrs, bss, network_parameters, trainset, preparation_times
             reheated_model.load_state_dict(cold_state_dict)
 
             train_and_save(
-                model, trainset, lr, bs, relaxation_time,
+                reheated_model, trainset, lr, bs, relaxation_time,
                 file_state = OUTPUT_DIR + '/reheated_trained_time={}_lr={}_bs={}.p'.format(preparation_time, lr, bs),
                 file_losses = OUTPUT_DIR + '/reheated_losses_time={}_lr={}_bs={}.p'.format(preparation_time, lr, bs)
             )
