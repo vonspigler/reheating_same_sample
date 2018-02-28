@@ -37,6 +37,7 @@ import os
 import pickle
 import numpy as np
 from collections import OrderedDict
+from decimal import Decimal
 import torch
 from torch import Tensor, nn, optim, cuda
 from torch.nn import functional as F
@@ -230,24 +231,27 @@ def do_reheating_cycle(lrs, bss, network_parameters, trainset, preparation_times
 
     # This outer cycle loops through the preparation_times, and minimizes in
     # each interval:
+    print("Training the system")
     for preparation_time in preparation_times:
         cold_state_dict = train_and_save(
             cold_model, trainset, lrs[0], bss[0], preparation_time - prev_time,
-            file_state = OUTPUT_DIR + '/cold_trained_time={}_lr={}_bs={}.p'.format(preparation_time, lrs[0], bss[0]),
+            file_state = OUTPUT_DIR + '/cold_trained_time={:1.0}_lr={}_bs={}.p'.format(Decimal(preparation_time), lrs[0], bss[0]),
             file_losses = None,
             losses_dump = cold_losses_dump
         )
 
         # The inner cycle loops through the reheating temperatures (skip first one)
+        print("First branching at t={}:".format(preparation_time))
         for lr, bs in list(zip(lrs, bss))[1:]:
+            print("Heating up to T={}, lr={}, bs={}".format(lr/bs, lr, bs))
             reheated_model = SimpleNet(*network_parameters)
             # In this experiment I am always starting from the same state!
             reheated_model.load_state_dict(cold_state_dict)
 
             train_and_save(
                 reheated_model, trainset, lr, bs, relaxation_time,
-                file_state = OUTPUT_DIR + '/reheated_trained_time={}_lr={}_bs={}.p'.format(preparation_time, lr, bs),
-                file_losses = OUTPUT_DIR + '/reheated_losses_time={}_lr={}_bs={}.p'.format(preparation_time, lr, bs)
+                file_state = OUTPUT_DIR + '/reheated_trained_time={:1.0}_lr={}_bs={}.p'.format(Decimal(preparation_time), lr, bs),
+                file_losses = OUTPUT_DIR + '/reheated_losses_time={:1.0}_lr={}_bs={}.p'.format(Decimal(preparation_time), lr, bs)
             )
 
     cold_losses_dump.close()
