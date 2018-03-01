@@ -278,35 +278,35 @@ def do_reheating_cycle(lrs, bss, network_parameters, trainset, preparation_times
 network_parameters = (1, 10, 28)
 
 # Temperatures for reheating; first one is for the cold model:
-temps = [0.0002, 0.0005, 0.001, 0.002, 0.004]
+temps = [0.0002, 0.0006, 0.002]
 
 # Duration of training: at each time, a bunch of reheated copies of the system
 # are trained for a time relaxation_time.
 # NOTE (important): times are expressed as BATCH TIME * LR!
 ref_lr = 0.01
-preparation_times = [ ref_lr*int(t) for t in [1e5, 2e5, 5e5, 1e6] ]
-relaxation_time = ref_lr*1e6
+preparation_times = [ ref_lr*int(t) for t in [1e5, 5e5, 1e6] ]
+relaxation_time = ref_lr*1e7
 
 
 # --  Fixed BS  -------------------------------------------------------------- #
 
 
-print("Training at fixed BS:")
-bss = [32]*len(temps)  # lr = temp*bs, for temp in temps
-lrs = [bs*temp for temp, bs in zip(temps, bss)]
-do_reheating_cycle(
-    lrs, bss, network_parameters, trainset,
-    preparation_times = preparation_times,
-    relaxation_time = relaxation_time,
-    OUTPUT_DIR = 'reheating_same_sample_data/fixed_bs_cold_lr={}_bs={}'.format(lrs[0], bss[0])
-)
+#print("Training at fixed BS:")
+#bss = [32]*len(temps)  # lr = temp*bs, for temp in temps
+#lrs = [bs*temp for temp, bs in zip(temps, bss)]
+#do_reheating_cycle(
+#    lrs, bss, network_parameters, trainset,
+#    preparation_times = preparation_times,
+#    relaxation_time = relaxation_time,
+#    OUTPUT_DIR = 'reheating_same_sample_data/fixed_bs_cold_lr={}_bs={}'.format(lrs[0], bss[0])
+#)
 
 
 # --  Fixed LR  -------------------------------------------------------------- #
 
 
 print("Training at fixed LR:")
-lrs = [0.1]*len(temps)
+lrs = [0.03]*len(temps)
 bss = [int(lr/temp) for temp, lr in zip(temps, lrs)]
 do_reheating_cycle(
     lrs, bss, network_parameters, trainset,
