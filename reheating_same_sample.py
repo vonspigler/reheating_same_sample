@@ -4,7 +4,7 @@
 ##     ---------------------------                                            ##
 ##                                                                            ##
 ##      This program takes a single sample and varies the durationg of        ##
-##      the initial training.                                                                      ##
+##      the initial training.                                                 ##
 ##                                                                            ##
 ################################################################################
 ##                                                                            ##
