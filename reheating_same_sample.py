@@ -300,11 +300,6 @@ do_reheating_cycle(
 print("Training at fixed LR:")
 lrs = [0.1]*len(temps)
 bss = [int(lr/temp) for temp, lr in zip(temps, lrs)]
-####  DEBUG  ###################################################################
-################################################################################
-preparation_times = [ lrs[0]*int(t) for t in [1e2, 2e2, 5e2] ]#### BATCH*LR ####
-relaxation_time = lrs[0]*1e2####################################################
-################################################################################
 do_reheating_cycle(
     lrs, bss, network_parameters, trainset,
     preparation_times = preparation_times,
