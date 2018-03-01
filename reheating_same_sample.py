@@ -137,7 +137,7 @@ def load_batch(loader, cuda = False, only_one_epoch = False):
 # --  Training function  ----------------------------------------------------- #
 
 
-def train_and_save(model, trainset, lr, bs, minimization_time, file_state, file_losses, time_factor = None, losses_dump = None):
+def train_and_save(model, trainset, lr, bs, minimization_time, file_state, file_losses, time_delay = 0, time_factor = None, losses_dump = None):
     """This function trains a model by model and saves both its state_dict at
     the end and the losses (on a log scale). It takes care of cuda().
 
@@ -167,7 +167,7 @@ def train_and_save(model, trainset, lr, bs, minimization_time, file_state, file_
 
     if time_factor == None: time_factor = minimization_time**(1.0/200)
 
-    next_t = 1.0
+    next_t = 1.0*lr  # Times are multiplied by the LR
     batch = 0
 
     # NOTE: if losses_dump is an open file, use it, regardless of 'file_losses'
@@ -176,7 +176,7 @@ def train_and_save(model, trainset, lr, bs, minimization_time, file_state, file_
 
     for data, target in load_batch(trainloader, cuda = cuda.is_available()):
         batch += 1
-        if batch > minimization_time:
+        if batch*lr > minimization_time:  # Times are multiplied by the LR
             break
 
         optimizer.zero_grad()
@@ -185,7 +185,9 @@ def train_and_save(model, trainset, lr, bs, minimization_time, file_state, file_
         loss.backward()
         optimizer.step()
 
-        if batch > next_t:
+        # Times are multiplied by the LR
+        # Save also the last step!
+        if batch*lr > next_t or (batch + 1)*lr > minimization_time:
             # I want to save the average loss on the total training set
             avg_loss = 0
             total_trainloader = DataLoader(
@@ -199,7 +201,7 @@ def train_and_save(model, trainset, lr, bs, minimization_time, file_state, file_
                 output = model(data)
                 avg_loss += F.nll_loss(output, target, size_average = False).data[0]
 
-            pickle.dump(( batch, avg_loss/len(trainset) ), losses_dump)
+            pickle.dump(( time_delay + batch*lr, avg_loss/len(trainset) ), losses_dump)
             next_t *= time_factor
 
     if no_file == None: losses_dump.close()
@@ -235,10 +237,13 @@ def do_reheating_cycle(lrs, bss, network_parameters, trainset, preparation_times
     for preparation_time in preparation_times:
         cold_state_dict = train_and_save(
             cold_model, trainset, lrs[0], bss[0], preparation_time - prev_time,
+            time_delay = prev_time,
             file_state = OUTPUT_DIR + '/cold_trained_time={:1.0}_lr={}_bs={}.p'.format(Decimal(preparation_time), lrs[0], bss[0]),
             file_losses = None,
             losses_dump = cold_losses_dump
         )
+
+        prev_time = preparation_time
 
         # The inner cycle loops through the reheating temperatures (skip first one)
         print("First branching at t={}:".format(preparation_time))
@@ -250,6 +255,7 @@ def do_reheating_cycle(lrs, bss, network_parameters, trainset, preparation_times
 
             train_and_save(
                 reheated_model, trainset, lr, bs, relaxation_time,
+                time_delay = prev_time,
                 file_state = OUTPUT_DIR + '/reheated_trained_time={:1.0}_lr={}_bs={}.p'.format(Decimal(preparation_time), lr, bs),
                 file_losses = OUTPUT_DIR + '/reheated_losses_time={:1.0}_lr={}_bs={}.p'.format(Decimal(preparation_time), lr, bs)
             )
@@ -263,18 +269,21 @@ def do_reheating_cycle(lrs, bss, network_parameters, trainset, preparation_times
 # input_channels, output_classes, image_size (Fashion-MNIST = 28x28 -> size = 28)
 network_parameters = (1, 10, 28)
 
-# Duration of training: at each time, a bunch of reheated copies of the system
-# are trained for a time relaxation_time:
-preparation_times = [ int(t) for t in [1e5, 2e5, 5e5, 1e6] ]
-relaxation_time = 1e6
-
 # Temperatures for reheating; first one is for the cold model:
 temps = [0.0002, 0.0005, 0.001, 0.002, 0.004]
+
+# Duration of training: at each time, a bunch of reheated copies of the system
+# are trained for a time relaxation_time.
+# NOTE (important): times are expressed as BATCH TIME * LR!
+ref_lr = 0.01
+preparation_times = [ ref_lr*int(t) for t in [1e5, 2e5, 5e5, 1e6] ]
+relaxation_time = ref_lr*1e6
 
 
 # --  Fixed BS  -------------------------------------------------------------- #
 
 
+print("Training at fixed BS:")
 bss = [32]*len(temps)  # lr = temp*bs, for temp in temps
 lrs = [bs*temp for temp, bs in zip(temps, bss)]
 do_reheating_cycle(
@@ -288,11 +297,17 @@ do_reheating_cycle(
 # --  Fixed LR  -------------------------------------------------------------- #
 
 
+print("Training at fixed LR:")
 lrs = [0.1]*len(temps)
 bss = [int(lr/temp) for temp, lr in zip(temps, lrs)]
+####  DEBUG  ###################################################################
+################################################################################
+preparation_times = [ lrs[0]*int(t) for t in [1e2, 2e2, 5e2] ]#### BATCH*LR ####
+relaxation_time = lrs[0]*1e2####################################################
+################################################################################
 do_reheating_cycle(
     lrs, bss, network_parameters, trainset,
     preparation_times = preparation_times,
     relaxation_time = relaxation_time,
-    OUTPUT_DIR = 'reheating_same_sampe_data/fixed_lr_cold_lr={}_bs={}'.format(lrs[0], bss[0])
+    OUTPUT_DIR = 'reheating_same_sample_data/fixed_lr_cold_lr={}_bs={}'.format(lrs[0], bss[0])
 )
