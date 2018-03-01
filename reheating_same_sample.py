@@ -260,6 +260,14 @@ def do_reheating_cycle(lrs, bss, network_parameters, trainset, preparation_times
                 file_losses = OUTPUT_DIR + '/reheated_losses_time={:1.0}_lr={}_bs={}.p'.format(Decimal(preparation_time), lr, bs)
             )
 
+    # Perform a final relaxation, in order to be compared with the reheated curves
+    cold_state_dict = train_and_save(
+        cold_model, trainset, lrs[0], bss[0], relaxation_time,
+        time_delay = prev_time,
+        file_state = OUTPUT_DIR + '/cold_trained_time={:1.0}_lr={}_bs={}.p'.format(Decimal(preparation_time), lrs[0], bss[0]),
+        file_losses = None,
+        losses_dump = cold_losses_dump
+    )
     cold_losses_dump.close()
 
 
