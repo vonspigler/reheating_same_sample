@@ -58,12 +58,12 @@ class SimpleNet(torch.nn.Module):
 
     def __init__(self, input_features, output_classes, image_size):
         super(SimpleNet, self).__init__()
-        self.conv1 = torch.nn.Conv2d(input_features, 10, kernel_size = 5, stride = 2)
+        self.conv1 = torch.nn.Conv2d(input_features, 20, kernel_size = 5, stride = 2)
         image_size = (image_size + 2*0 - 5)//2 + 1
-        self.conv2 = torch.nn.Conv2d(10, 20, kernel_size = 5, stride = 2)
+        self.conv2 = torch.nn.Conv2d(20, 40, kernel_size = 5, stride = 2)
         image_size = (image_size + 2*0 - 5)//2 + 1
-        self.fc1 = torch.nn.Linear(20*image_size**2, 50)
-        self.fc2 = torch.nn.Linear(50, output_classes)
+        self.fc1 = torch.nn.Linear(40*image_size**2, 60)
+        self.fc2 = torch.nn.Linear(60, output_classes)
 
     def forward(self, x):
         x = self.conv1(x)
@@ -278,14 +278,14 @@ def do_reheating_cycle(lrs, bss, network_parameters, trainset, preparation_times
 network_parameters = (1, 10, 28)
 
 # Temperatures for reheating; first one is for the cold model:
-temps = [0.0002, 0.0006, 0.002]
+temps = [0.0002, 0.0006, 0.001]
 
 # Duration of training: at each time, a bunch of reheated copies of the system
 # are trained for a time relaxation_time.
 # NOTE (important): times are expressed as BATCH TIME * LR!
 ref_lr = 0.01
 preparation_times = [ ref_lr*int(t) for t in [1e5, 5e5, 1e6] ]
-relaxation_time = ref_lr*1e7
+relaxation_time = ref_lr*1e6
 
 
 # --  Fixed BS  -------------------------------------------------------------- #
@@ -305,9 +305,23 @@ relaxation_time = ref_lr*1e7
 # --  Fixed LR  -------------------------------------------------------------- #
 
 
-print("Training at fixed LR:")
-lrs = [0.03]*len(temps)
-bss = [int(lr/temp) for temp, lr in zip(temps, lrs)]
+#print("Training at fixed LR:")
+#lrs = [0.03]*len(temps)
+#bss = [int(lr/temp) for temp, lr in zip(temps, lrs)]
+#do_reheating_cycle(
+#    lrs, bss, network_parameters, trainset,
+#    preparation_times = preparation_times,
+#    relaxation_time = relaxation_time,
+#    OUTPUT_DIR = 'reheating_same_sample_data/fixed_lr_cold_lr={}_bs={}'.format(lrs[0], bss[0])
+#)
+
+
+# --  ANY  ------------------------------------------------------------------- #
+
+
+lrs = [0.03, 0.03, 0.05]
+bss = [150, 50, 50]
+print("Training with temps = [" + ", ".join([ "{}/{}".format(lr, bs) for lr, bs in zip(lrs, bss) ]) + "]")
 do_reheating_cycle(
     lrs, bss, network_parameters, trainset,
     preparation_times = preparation_times,
