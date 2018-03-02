@@ -72,7 +72,7 @@ for directory in os.listdir(DATA_DIR):
     cold_losses = []
     all_reheated_losses = []
 
-    print("Loading data in '{}'...".format(OUTPUT_DIR))
+    print(" -- Loading data in '{}'...".format(OUTPUT_DIR))
     for filename in os.listdir(OUTPUT_DIR):
         if fnmatch.fnmatch(filename, 'cold_losses_*.p'):
             lr, bs = get_lrbs_from_file(filename)
@@ -123,31 +123,36 @@ for directory in os.listdir(DATA_DIR):
     plt.figure(figsize = (16.8, 10))
     plt.tight_layout()
 
-    print("Plotting cold run...")
     lr, bs = cold_losses[0:2]
+    print("Plotting cold run: temp={}".format(lr/bs))
     # When times were saved they have already been multiplied by the LR
     plt.plot([ t for t, l in cold_losses[-1] ], [ l for t, l in cold_losses[-1] ], '-',
         label = "T={:.2} (lr={}, bs={}),  time={}".format(lr/bs, lr, bs, 0),
         color = 'C0'
     )
 
-    print("Plotting reheated losses...")
-    for reheated_losses in all_reheated_losses:
-        if len(reheated_losses[-1]) == 0: continue  # the simulation is still running
+    for time in all_times:
+        print("  Preparation time=" + time + ":\n    Temperatures: ", end = '')
 
-        time, lr, bs = reheated_losses[0:3]
-        if not reheated_losses[-1][-1][1] > 0:
-            print("Skipping lr={}, bs={} -- diverged".format(lr, bs))
-            continue
+        for temp in all_temps:
+            if len(map_reheated_losses[temp][time]) == 0: continue
+            lr, bs, losses = map_reheated_losses[temp][time]
 
-        # When times were saved they have already been multiplied by the LR
-        plt.plot(
-            [ t for t, l in reheated_losses[-1] ], [ l for t, l in reheated_losses[-1] ], '-',
-            label = "T={:.2} (lr={}, bs={}),  time={}".format(lr/bs, lr, bs, time),
-            color = 'C' + str(temps_to_colors[str(lr/bs)]),
-            linewidth = times_to_width[str(time)],
-            alpha = times_to_alpha[str(time)]
-        )
+            if not losses[-1][1] > 0:
+                print("[{}:{}], ".format(lr, bs), end = '')
+                continue
+            else:
+                print(temp + ", ", end = '')
+
+            plt.plot(
+                [ t for t, l in losses ], [ l for t, l in losses ], '-',
+                label = "T={:.2} (lr={}, bs={}),  time={}".format(float(temp), lr, bs, time),
+                color = 'C' + str(temps_to_colors[temp]),
+                linewidth = times_to_width[time],
+                alpha = times_to_alpha[time]
+            )
+
+        print()
 
     plt.ylim(1e-5, 10)
     plt.yscale('log')
@@ -158,14 +163,14 @@ for directory in os.listdir(DATA_DIR):
 
     #plt.show()
     pdf.savefig()
-
+    print()
 
     # --  Other plots, for each preparation time  ---------------------------- #
 
 
-    print("Plotting only reheated losses (shifted times)...")
+    print("Plotting only reheated losses with shifted times:")
     for time in all_times:
-        print("preparation time time=" + time)
+        print("  Preparation time=" + time + ":\n    Temperatures: ", end = '')
         plt.figure(figsize = (16.8, 10))
         plt.tight_layout()
 
@@ -173,6 +178,7 @@ for directory in os.listdir(DATA_DIR):
 
         lr, bs, losses = cold_losses
         if len([ t for t, l in losses if t > float(time) ]) > 0:
+            print("[COLD], ", end = '')
             plt.plot(
                 [ t - float(time) for t, l in losses ], [ l for t, l in losses ], '-',
                 label = "T={:.2} (lr={}, bs={}),  time={}".format(float(lr/bs), lr, bs, time),
@@ -184,14 +190,18 @@ for directory in os.listdir(DATA_DIR):
             lr, bs, losses = map_reheated_losses[temp][time]
 
             if not losses[-1][1] > 0:
-                print("Skipping lr={}, bs={} -- diverged".format(lr, bs))
+                print("[{}:{}], ".format(lr, bs), end = '')
                 continue
+            else:
+                print(temp + ", ", end = '')
 
             plt.plot(
                 [ t - float(time) for t, l in losses ], [ l for t, l in losses ], '-',
                 label = "T={:.2} (lr={}, bs={}),  time={}".format(float(temp), lr, bs, time),
                 color = 'C' + str(temps_to_colors[temp])
             )
+
+        print()
 
         plt.ylim((1e-5,1e3))
         plt.yscale('log')
