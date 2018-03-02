@@ -71,7 +71,7 @@ class SimpleNet(torch.nn.Module):
         image_size = f_size(image_size)
         self.conv1, f_size = conv2d(input_features, 20, kernel_size = 5, stride = 2, padding = 0)
         image_size = f_size(image_size)
-        self.conv2, f = conv2d(input_features, 20, kernel_size = 5, stride = 2, padding = 0)
+        self.conv2, f_size = conv2d(input_features, 20, kernel_size = 5, stride = 2, padding = 0)
         image_size = f_size(image_size)
         self.fc1 = torch.nn.Linear(20*image_size**2, 60)
         self.fc2 = torch.nn.Linear(60, output_classes)
