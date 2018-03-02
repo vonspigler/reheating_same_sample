@@ -337,3 +337,13 @@ do_reheating_cycle(
     relaxation_time = relaxation_time,
     OUTPUT_DIR = 'reheating_same_sample_data/fixed_lr_cold_lr={}_bs={}'.format(lrs[0], bss[0])
 )
+
+lrs = [0.03, 0.05]
+bss = [50, 50]
+print("Training with temps = [" + ", ".join([ "{}/{}".format(lr, bs) for lr, bs in zip(lrs, bss) ]) + "]")
+do_reheating_cycle(
+    lrs, bss, network_parameters, trainset,
+    preparation_times = preparation_times,
+    relaxation_time = relaxation_time,
+    OUTPUT_DIR = 'reheating_same_sample_data/fixed_lr_cold_lr={}_bs={}'.format(lrs[0], bss[0])
+)

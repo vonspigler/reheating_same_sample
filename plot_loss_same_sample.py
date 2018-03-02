@@ -203,7 +203,7 @@ for directory in os.listdir(DATA_DIR):
 
         print()
 
-        plt.ylim((1e-5,1e3))
+        plt.ylim((1e-6,1e2))
         plt.yscale('log')
         plt.xscale('log')
         plt.ylabel('Loss')
