@@ -56,7 +56,7 @@ def conv2d(conv2d):
         return conv2d(input_features, output_features, kernel_size, stride, padding, *args, **kwargs), convert
     return decorated
 
-conv2d = conv2d(nn.torch.Conv2d)
+conv2d = conv2d(torch.nn.Conv2d)
 
 class SimpleNet(torch.nn.Module):
     """Simple convolutional networ: 2 conv layers followed by 2 fc layers.
