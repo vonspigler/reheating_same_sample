@@ -328,8 +328,8 @@ relaxation_time = ref_lr*1e6
 # --  ANY  ------------------------------------------------------------------- #
 
 
-lrs = [0.03, 0.03, 0.05]
-bss = [150, 50, 50]
+lrs = [0.03, 0.03, 0.03]
+bss = [150, 125, 100]
 print("Training with temps = [" + ", ".join([ "{}/{}".format(lr, bs) for lr, bs in zip(lrs, bss) ]) + "]")
 do_reheating_cycle(
     lrs, bss, network_parameters, trainset,
@@ -339,7 +339,7 @@ do_reheating_cycle(
 )
 
 lrs = [0.03, 0.05]
-bss = [50, 50]
+bss = [125, 100]
 print("Training with temps = [" + ", ".join([ "{}/{}".format(lr, bs) for lr, bs in zip(lrs, bss) ]) + "]")
 do_reheating_cycle(
     lrs, bss, network_parameters, trainset,
