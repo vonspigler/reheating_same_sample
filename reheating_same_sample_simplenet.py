@@ -61,7 +61,7 @@ from models.simple import SimpleNet
 # Fashion-MNIST dataset: 1 channel, 10 classes, 28x28 pixels
 # Normalized as MNIST -- I should probably change it
 trainset = list(datasets.FashionMNIST(
-	'../data/',
+	'../data/Fashion-MNIST',
 	train = True,
 	download = True,
 	transform = transforms.Compose([

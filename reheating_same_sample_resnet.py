@@ -61,7 +61,7 @@ from models.resnet import resnet18
 # CIFAR-10 dataset: 3 channels, 10 classes, 32x32 pixels
 # Normalized
 trainset = list(datasets.CIFAR10(
-	'../data/',
+	'../data/CIFAR-10',
 	train = True,
 	download = True,
 	transform = transforms.Compose([
