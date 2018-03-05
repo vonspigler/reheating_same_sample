@@ -148,7 +148,7 @@ def train_and_save(model, trainset, lr, bs, minimization_time, file_state, file_
 
     return state_dict
 
-def do_reheating_cycle(lrs, bss, network_parameters, trainset, preparation_times, relaxation_time, OUTPUT_DIR):
+def do_reheating_cycle(lrs, bss, trainset, preparation_times, relaxation_time, OUTPUT_DIR):
     """This function performs a cold minimization, then it reheats the system at
     some given temperatures and saves losses and states in the given files.
 
