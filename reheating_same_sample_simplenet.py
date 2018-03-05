@@ -252,7 +252,7 @@ do_reheating_cycle(
     lrs, bss, network_parameters, trainset,
     preparation_times = preparation_times,
     relaxation_time = relaxation_time,
-    OUTPUT_DIR = 'reheating_same_sample_data/fixed_lr_cold_lr={}_bs={}'.format(lrs[0], bss[0])
+    OUTPUT_DIR = 'reheating_same_sample_data_simplenet-FM/fixed_lr_cold_lr={}_bs={}'.format(lrs[0], bss[0])
 )
 
 lrs = [0.03, 0.05]
@@ -262,5 +262,5 @@ do_reheating_cycle(
     lrs, bss, network_parameters, trainset,
     preparation_times = preparation_times,
     relaxation_time = relaxation_time,
-    OUTPUT_DIR = 'reheating_same_sample_data/fixed_lr_cold_lr={}_bs={}'.format(lrs[0], bss[0])
+    OUTPUT_DIR = 'reheating_same_sample_data_simplenet-FM/fixed_lr_cold_lr={}_bs={}'.format(lrs[0], bss[0])
 )
