@@ -52,7 +52,7 @@ from sampler import RandomSampler, load_batch
 
 
 import models
-from models.resnet import resnet18
+from models.resnet import ResNet18
 
 
 # --  Datasets  -------------------------------------------------------------- #
@@ -161,7 +161,7 @@ def do_reheating_cycle(lrs, bss, trainset, preparation_times, relaxation_time, O
     # create folder fot output data, if it does not exist
     if not os.path.isdir(OUTPUT_DIR): os.makedirs(OUTPUT_DIR)
 
-    cold_model = resnet18(num_classes = 10)
+    cold_model = ResNet18(num_classes = 10)
     cold_state_dict = None
     prev_time = 0
 
@@ -186,7 +186,7 @@ def do_reheating_cycle(lrs, bss, trainset, preparation_times, relaxation_time, O
         print("First branching at t={}:".format(preparation_time))
         for lr, bs in list(zip(lrs, bss))[1:]:
             print("Heating up to T={}, lr={}, bs={}".format(lr/bs, lr, bs))
-            reheated_model = resnet18(num_classes = 10)
+            reheated_model = ResNet18(num_classes = 10)
             # In this experiment I am always starting from the same state!
             reheated_model.load_state_dict(cold_state_dict)
 
