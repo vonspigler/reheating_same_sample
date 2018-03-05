@@ -161,7 +161,7 @@ def do_reheating_cycle(lrs, bss, network_parameters, trainset, preparation_times
     # create folder fot output data, if it does not exist
     if not os.path.isdir(OUTPUT_DIR): os.makedirs(OUTPUT_DIR)
 
-    cold_model = SimpleNet(*network_parameters)
+    cold_model = resnet18()
     cold_state_dict = None
     prev_time = 0
 
@@ -186,7 +186,7 @@ def do_reheating_cycle(lrs, bss, network_parameters, trainset, preparation_times
         print("First branching at t={}:".format(preparation_time))
         for lr, bs in list(zip(lrs, bss))[1:]:
             print("Heating up to T={}, lr={}, bs={}".format(lr/bs, lr, bs))
-            reheated_model = SimpleNet(*network_parameters)
+            reheated_model = resnet18()
             # In this experiment I am always starting from the same state!
             reheated_model.load_state_dict(cold_state_dict)
 
@@ -223,7 +223,7 @@ lrs = [0.03, 0.03, 0.03, 0.05, 0.03]
 bss = [150, 125, 100, 100, 50]
 print("Training with temps = [" + ", ".join([ "{}/{}".format(lr, bs) for lr, bs in zip(lrs, bss) ]) + "]")
 do_reheating_cycle(
-    lrs, bss, network_parameters, trainset,
+    lrs, bss, trainset,
     preparation_times = preparation_times,
     relaxation_time = relaxation_time,
     OUTPUT_DIR = 'reheating_same_sample_data_ResNet18-10/fixed_lr_cold_lr={}_bs={}'.format(lrs[0], bss[0])
@@ -234,7 +234,7 @@ lrs = [0.03, 0.03, 0.05, 0.03]
 bss = [125, 100, 100, 50]
 print("Training with temps = [" + ", ".join([ "{}/{}".format(lr, bs) for lr, bs in zip(lrs, bss) ]) + "]")
 do_reheating_cycle(
-    lrs, bss, network_parameters, trainset,
+    lrs, bss, trainset,
     preparation_times = preparation_times,
     relaxation_time = relaxation_time,
     OUTPUT_DIR = 'reheating_same_sample_data_ResNet18-10/fixed_lr_cold_lr={}_bs={}'.format(lrs[0], bss[0])
