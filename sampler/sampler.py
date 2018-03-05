@@ -1,4 +1,7 @@
 import numpy as np
+import torch
+from torch import Tensor, nn, cuda
+from torch.autograd import Variable
 
 class RandomSampler:
     """RandomSampler is a sampler for torch.utils.data.DataLoader.
