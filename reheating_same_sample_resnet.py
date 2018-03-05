@@ -13,22 +13,22 @@
 ##      * Save state_dict's for a bunch of intermediate points, in order      ##
 ##        to do an interpolation in interpolation.py                          ##
 ##                                                                            ##
-##      * check whether Loss = NaN and quit()                                 ##
+##      * Check whether Loss = NaN and quit()                                 ##
 ##                                                                            ##
-##      * start from larger temperatures                                      ##
+##      * ResNets?                                                            ##
 ##                                                                            ##
 ################################################################################
 ##                                                                            ##
 ##      RESULTS:                                                              ##
 ##                                                                            ##
-##      * It seems that the better the system is prepared (i.e. the           ##
-##        longer the cold training), the rarer are the jumps.                 ##
-##                                                                            ##
-##        It is not clear why this happens.                                   ##
-##                                                                            ##
 ##      * Fixing LR or BS have, it seems, qualitatively similar effects.      ##
 ##        Still, it looks like Fixed-BS show cleaner results (large LR        ##
 ##        have difficulties converging?)                                      ##
+##                                                                            ##
+##      * The better the system is minimized, the rarer the jumps.            ##
+##        The same is true if the network is larger.                          ##
+##                                                                            ##
+##      * Both seem to imply smaller barriers in the landscape.               ##
 ##                                                                            ##
 ################################################################################
 
@@ -45,102 +45,30 @@ from torch.autograd import Variable
 from torch.utils.data import DataLoader
 from torchvision import datasets, transforms
 
+from sampler import RandomSampler, load_batch
+
 
 # --  Models  ---------------------------------------------------------------- #
 
 
-def custom_conv2d(conv2d):
-    def decorated(input_features, output_features, kernel_size, stride = 1, padding = 0, *args, **kwargs):
-        def convert(image_size):
-            return (image_size + 2*padding - kernel_size)//stride + 1
-        return conv2d(input_features, output_features, kernel_size, stride, padding, *args, **kwargs), convert
-    return decorated
-
-conv2d = custom_conv2d(torch.nn.Conv2d)
-
-class SimpleNet(torch.nn.Module):
-    """Simple convolutional networ: 2 conv layers followed by 2 fc layers.
-
-     model = SimpleNet(# input channels, # num of output classes, image_size)
-     model(data) performs the forward computation
-    """
-
-    def __init__(self, input_features, output_classes, image_size):
-        super(SimpleNet, self).__init__()
-        self.conv0, f_size = conv2d(input_features, 20, kernel_size = 5, stride = 1, padding = 5 // 2)
-        image_size = f_size(image_size)
-        self.conv1, f_size = conv2d(20, 20, kernel_size = 5, stride = 2, padding = 0)
-        image_size = f_size(image_size)
-        self.conv2, f_size = conv2d(20, 20, kernel_size = 5, stride = 2, padding = 0)
-        image_size = f_size(image_size)
-        self.fc1 = torch.nn.Linear(20*image_size**2, 60)
-        self.fc2 = torch.nn.Linear(60, output_classes)
-
-    def forward(self, x):
-        x = F.relu( self.conv0(x) )
-        x = F.relu( self.conv1(x) )
-        x = F.relu( self.conv2(x) )
-        x = x.view(x.size(0), -1)
-        x = F.relu( self.fc1(x) )
-        x = self.fc2(x)
-        x = F.log_softmax(x, dim = 1)
-        return x
+import models
+from models.resnet import resnet18
 
 
 # --  Datasets  -------------------------------------------------------------- #
 
 
-# Fashion-MNIST dataset: 1 channel, 10 classes, 28x28 pixels
-# Normalized as MNIST -- I should probably change it
-trainset = list(datasets.FashionMNIST(
+# CIFAR-10 dataset: 3 channels, 10 classes, 32x32 pixels
+# Normalized
+trainset = list(datasets.CIFAR10(
 	'../data/',
 	train = True,
 	download = True,
 	transform = transforms.Compose([
 		transforms.ToTensor(),
-		transforms.Normalize((0.1307,), (0.3081,))
+		transforms.Normalize((0.5, 0.5, 0.5), (0.5, 0.5, 0.5))
 	])
 ))
-
-#testset = list(datasets.FashionMNIST('../data/', train = False, download = True, transform = transforms.Compose([ \
-#    transforms.ToTensor(),
-#    transforms.Normalize((0.1307,), (0.3081,))
-#])))
-
-
-# --  Other definitions  ----------------------------------------------------- #
-
-
-class RandomSampler:
-    """RandomSampler is a sampler for torch.utils.data.DataLoader.
-
-    Each batch is independent (i.e. with repetition).
-     -- __iter__() instead of returning a permutation of range(n), it gives n random numbers each in range(n).
-    """
-
-    def __init__(self, length):
-        self.length = length
-
-    def __iter__(self):
-        return iter(np.random.choice(self.length, size = self.length))
-
-    def __len__(self):
-        return self.length
-
-def load_batch(loader, cuda = False, only_one_epoch = False):
-    """This function loads a single batch with torch.utils.data.DataLoader and RandomSampler.
-
-    By default, there is no end to the number of batches (no concept of epoch).
-    This is overridden with only_one_epoch = True.
-    """
-
-    while True:
-        for data, target in iter(loader):
-            if  cuda: data, target = data.cuda(), target.cuda()
-            data, target = Variable(data), Variable(target)
-            yield data, target
-
-        if only_one_epoch: break  # exit the loop if only_one_epoch == True
 
 
 # --  Training function  ----------------------------------------------------- #
@@ -283,12 +211,6 @@ def do_reheating_cycle(lrs, bss, network_parameters, trainset, preparation_times
 # ==  MAIN  ================================================================== #
 
 
-# input_channels, output_classes, image_size (Fashion-MNIST = 28x28 -> size = 28)
-network_parameters = (1, 10, 28)
-
-# Temperatures for reheating; first one is for the cold model:
-temps = [0.0002, 0.0006, 0.001]
-
 # Duration of training: at each time, a bunch of reheated copies of the system
 # are trained for a time relaxation_time.
 # NOTE (important): times are expressed as BATCH TIME * LR!
@@ -297,53 +219,23 @@ preparation_times = [ ref_lr*int(t) for t in [1e5, 5e5, 1e6] ]
 relaxation_time = ref_lr*1e6
 
 
-# --  Fixed BS  -------------------------------------------------------------- #
-
-
-#print("Training at fixed BS:")
-#bss = [32]*len(temps)  # lr = temp*bs, for temp in temps
-#lrs = [bs*temp for temp, bs in zip(temps, bss)]
-#do_reheating_cycle(
-#    lrs, bss, network_parameters, trainset,
-#    preparation_times = preparation_times,
-#    relaxation_time = relaxation_time,
-#    OUTPUT_DIR = 'reheating_same_sample_data/fixed_bs_cold_lr={}_bs={}'.format(lrs[0], bss[0])
-#)
-
-
-# --  Fixed LR  -------------------------------------------------------------- #
-
-
-#print("Training at fixed LR:")
-#lrs = [0.03]*len(temps)
-#bss = [int(lr/temp) for temp, lr in zip(temps, lrs)]
-#do_reheating_cycle(
-#    lrs, bss, network_parameters, trainset,
-#    preparation_times = preparation_times,
-#    relaxation_time = relaxation_time,
-#    OUTPUT_DIR = 'reheating_same_sample_data/fixed_lr_cold_lr={}_bs={}'.format(lrs[0], bss[0])
-#)
-
-
-# --  ANY  ------------------------------------------------------------------- #
-
-
-lrs = [0.03, 0.03, 0.03]
-bss = [150, 125, 100]
+lrs = [0.03, 0.03, 0.03, 0.05, 0.03]
+bss = [150, 125, 100, 100, 50]
 print("Training with temps = [" + ", ".join([ "{}/{}".format(lr, bs) for lr, bs in zip(lrs, bss) ]) + "]")
 do_reheating_cycle(
     lrs, bss, network_parameters, trainset,
     preparation_times = preparation_times,
     relaxation_time = relaxation_time,
-    OUTPUT_DIR = 'reheating_same_sample_data/fixed_lr_cold_lr={}_bs={}'.format(lrs[0], bss[0])
+    OUTPUT_DIR = 'reheating_same_sample_data_ResNet18-10/fixed_lr_cold_lr={}_bs={}'.format(lrs[0], bss[0])
 )
 
-lrs = [0.03, 0.05]
-bss = [125, 100]
+
+lrs = [0.03, 0.03, 0.05, 0.03]
+bss = [125, 100, 100, 50]
 print("Training with temps = [" + ", ".join([ "{}/{}".format(lr, bs) for lr, bs in zip(lrs, bss) ]) + "]")
 do_reheating_cycle(
     lrs, bss, network_parameters, trainset,
     preparation_times = preparation_times,
     relaxation_time = relaxation_time,
-    OUTPUT_DIR = 'reheating_same_sample_data/fixed_lr_cold_lr={}_bs={}'.format(lrs[0], bss[0])
+    OUTPUT_DIR = 'reheating_same_sample_data_ResNet18-10/fixed_lr_cold_lr={}_bs={}'.format(lrs[0], bss[0])
 )
